@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link"; // DODANO OVDJE
 import { createClient } from "../lib/supabase";
 
 export default function Home() {
@@ -9,7 +10,6 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const supabase = createClient();
 
-  // 1. Provjera sesije pri učitavanju
   useEffect(() => {
     const checkUser = async () => {
       const {
@@ -20,7 +20,6 @@ export default function Home() {
     checkUser();
   }, [supabase]);
 
-  // 2. Logika za prijavu
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -42,7 +41,6 @@ export default function Home() {
     }
   };
 
-  // 3. Logika za registraciju
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = e.currentTarget;
@@ -76,22 +74,24 @@ export default function Home() {
       },
     });
 
-    if (error) alert("Greška: " + error.message);
-    else {
-      alert("Nalog napravljen! Možete se prijaviti.");
+    if (error) {
+      alert("Greška: " + error.message);
+    } else {
+      alert(
+        "Nalog uspješno napravljen! Provjerite email i kliknite na link za potvrdu, a zatim se prijavite.",
+      );
       setAuthTab("login");
     }
   };
+
   return (
     <>
-      {/* POZADINSKE SFERE */}
       <div className="background-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
         <div className="shape shape-3"></div>
       </div>
 
-      {/* NAVIGACIJA */}
       <nav className="top-nav">
         <div className="nav-container">
           <div className="logo-area">
@@ -103,32 +103,33 @@ export default function Home() {
             </div>
           </div>
           <div className="nav-links">
-            <a href="#" className="active">
+            {/* OVDJE SU SADA LINKOVI UMJESTO <a> */}
+            <Link href="/" className="active">
               Početna
-            </a>
-            <a href="#">Stanovi</a>
-            <a href="#">Poslovi</a>
-            <a href="#">Skripte</a>
-            <a href="#">Cimeri</a>
-            <a href="#">Forum</a>
+            </Link>
+            <Link href="/stanovi">Stanovi</Link>
+            <Link href="/poslovi">Poslovi</Link>
+            <Link href="/skripte">Skripte</Link>
+            <Link href="/cimeri">Cimeri</Link>
+            <Link href="/forum">Forum</Link>
           </div>
           <div className="nav-actions">
-            <a
-              href="#"
+            <Link
+              href="/dodaj"
               className="btn-icon"
               style={{ display: user ? "flex" : "none" }}
               title="Dodaj oglas"
             >
               <i className="fa-solid fa-plus"></i>
-            </a>
-            <a
-              href="#"
+            </Link>
+            <Link
+              href="/korpa"
               className="btn-icon"
               title="Korpa"
               style={{ position: "relative" }}
             >
               <i className="fa-solid fa-cart-shopping"></i>
-            </a>
+            </Link>
 
             {!user ? (
               <>
@@ -152,8 +153,8 @@ export default function Home() {
                 </button>
               </>
             ) : (
-              <a
-                href="#"
+              <Link
+                href="/profil"
                 className="btn-icon"
                 style={{
                   background:
@@ -162,13 +163,12 @@ export default function Home() {
                 }}
               >
                 {user.user_metadata?.ime?.charAt(0) || "K"}
-              </a>
+              </Link>
             )}
           </div>
         </div>
       </nav>
 
-      {/* GLAVNI SADRŽAJ */}
       <main className="main-content">
         <section className="hero-section">
           <div className="hero-text">
@@ -185,43 +185,44 @@ export default function Home() {
           </div>
         </section>
 
+        {/* OVDJE SU TAKOĐER LINKOVI */}
         <section className="categories-section">
-          <a href="#" className="cat-card">
+          <Link href="/stanovi" className="cat-card">
             <div className="cat-icon">
               <i className="fa-solid fa-house"></i>
             </div>
             <span>Stanovi</span>
-          </a>
-          <a href="#" className="cat-card">
+          </Link>
+          <Link href="/poslovi" className="cat-card">
             <div className="cat-icon">
               <i className="fa-solid fa-briefcase"></i>
             </div>
             <span>Poslovi</span>
-          </a>
-          <a href="#" className="cat-card">
+          </Link>
+          <Link href="/skripte" className="cat-card">
             <div className="cat-icon">
               <i className="fa-solid fa-book"></i>
             </div>
             <span>Skripte</span>
-          </a>
-          <a href="#" className="cat-card">
+          </Link>
+          <Link href="/cimeri" className="cat-card">
             <div className="cat-icon">
               <i className="fa-solid fa-user-group"></i>
             </div>
             <span>Cimeri</span>
-          </a>
+          </Link>
         </section>
 
         <section className="listings-section">
           <div className="section-header">
             <h2>Istaknuti oglasi</h2>
-            <a href="#" className="see-all">
+            <Link href="/svioglasi" className="see-all">
               Vidi sve <i className="fa-solid fa-arrow-right"></i>
-            </a>
+            </Link>
           </div>
 
           <div className="listings-grid">
-            <a href="#" className="listing-card">
+            <Link href="/detalji" className="listing-card">
               <div className="card-header">
                 <div className="card-img">
                   <i className="fa-solid fa-building"></i>
@@ -240,8 +241,8 @@ export default function Home() {
                   <span className="tag price-tag">300 KM/mj</span>
                 </div>
               </div>
-            </a>
-            <a href="#" className="listing-card">
+            </Link>
+            <Link href="/detalji" className="listing-card">
               <div className="card-header">
                 <div className="card-img">
                   <i className="fa-solid fa-laptop-code"></i>
@@ -260,8 +261,8 @@ export default function Home() {
                   <span className="tag price-tag">800 KM/mj</span>
                 </div>
               </div>
-            </a>
-            <a href="#" className="listing-card">
+            </Link>
+            <Link href="/detalji" className="listing-card">
               <div className="card-header">
                 <div className="card-img">
                   <i className="fa-solid fa-file-code"></i>
@@ -280,12 +281,11 @@ export default function Home() {
                   <span className="tag price-tag">25 KM</span>
                 </div>
               </div>
-            </a>
+            </Link>
           </div>
         </section>
       </main>
 
-      {/* MODAL ZA PRIJAVU / REGISTRACIJU */}
       <div
         className={`modal-overlay ${isModalOpen ? "show" : ""}`}
         onClick={(e) => {
@@ -316,7 +316,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* FORMA ZA PRIJAVU */}
           <form
             onSubmit={handleLogin}
             className={`auth-form ${authTab === "login" ? "active-form" : ""}`}
@@ -345,7 +344,6 @@ export default function Home() {
             </button>
           </form>
 
-          {/* FORMA ZA REGISTRACIJU */}
           <form
             onSubmit={handleRegister}
             className={`auth-form ${authTab === "register" ? "active-form" : ""}`}
