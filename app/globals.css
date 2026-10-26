@@ -1,0 +1,1184 @@
+/* =========================================
+   1. VARIJABLE I RESET
+   ========================================= */
+:root {
+  --bg-dark: #0a0a16;
+  --primary-orange: #ff5722;
+  --gradient-start: #ff6b35;
+  --gradient-end: #ff3d00;
+  --text-white: #ffffff;
+  --text-gray: #b0b0c0;
+
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-bg-hover: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-border-highlight: rgba(255, 255, 255, 0.2);
+  --glass-blur: blur(16px);
+  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+  --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: var(--text-white);
+  line-height: 1.5;
+  overflow-x: hidden;
+  position: relative;
+  min-height: 100vh;
+}
+
+/* =========================================
+   2. POZADINSKE SFERE (Aurora)
+   ========================================= */
+.background-shapes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+}
+
+.shape-1 {
+  width: 400px;
+  height: 400px;
+  background: var(--primary-orange);
+  top: -100px;
+  right: -100px;
+  animation: float 10s infinite alternate;
+}
+
+.shape-2 {
+  width: 300px;
+  height: 300px;
+  background: #6a11cb;
+  bottom: 10%;
+  left: -100px;
+  animation: float 12s infinite alternate-reverse;
+}
+
+.shape-3 {
+  width: 250px;
+  height: 250px;
+  background: #2575fc;
+  top: 40%;
+  right: 20%;
+  opacity: 0.3;
+  animation: float 15s infinite alternate;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(30px, 50px) scale(1.1);
+  }
+}
+
+/* =========================================
+   3. GORNJA NAVIGACIJA (WEB)
+   ========================================= */
+.top-nav {
+  background: rgba(10, 10, 22, 0.6);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-bottom: 1px solid var(--glass-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: none;
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.logo-icon {
+  background: linear-gradient(
+    135deg,
+    var(--gradient-start),
+    var(--gradient-end)
+  );
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+
+.logo-text h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.nav-links {
+  display: flex;
+  gap: 30px;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--text-gray);
+  font-weight: 500;
+  font-size: 15px;
+  transition: var(--transition);
+  position: relative;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+  color: var(--text-white);
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.nav-links a.active::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--primary-orange);
+  border-radius: 2px;
+  box-shadow: 0 0 10px var(--primary-orange);
+}
+
+.nav-actions {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-white);
+  font-size: 18px;
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.btn-icon:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-highlight);
+  color: var(--primary-orange);
+  transform: translateY(-2px);
+}
+
+.btn-login {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+
+.btn-login:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-highlight);
+}
+
+.btn-register {
+  background: var(--primary-orange);
+  border: none;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+
+.btn-register:hover {
+  background: var(--gradient-end);
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   4. GLAVNI SADRŽAJ I HERO
+   ========================================= */
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  padding-bottom: 100px;
+}
+
+.hero-section {
+  margin-top: 30px;
+  margin-bottom: 40px;
+}
+
+.hero-text h2 {
+  font-size: 32px;
+  margin-bottom: 10px;
+  background: linear-gradient(to right, #fff, #b0b0c0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-text p {
+  color: var(--text-gray);
+  margin-bottom: 25px;
+  font-size: 16px;
+}
+
+.search-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 5px;
+  max-width: 700px;
+  box-shadow: var(--glass-shadow);
+  transition: var(--transition);
+}
+
+.search-container:focus-within {
+  border-color: var(--glass-border-highlight);
+  background: var(--glass-bg-hover);
+  box-shadow: 0 8px 32px 0 rgba(255, 87, 34, 0.2);
+}
+
+.search-container i {
+  position: absolute;
+  left: 20px;
+  color: var(--text-gray);
+}
+
+.search-container input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 15px 15px 15px 50px;
+  color: white;
+  font-size: 15px;
+  outline: none;
+}
+
+.search-container input::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.search-btn {
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.search-btn:hover {
+  background: var(--gradient-end);
+  transform: scale(1.02);
+}
+
+/* =========================================
+   5. KATEGORIJE
+   ========================================= */
+.categories-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.cat-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 20px 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+  color: var(--text-white);
+}
+
+.cat-card:hover {
+  transform: translateY(-8px);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-highlight);
+  box-shadow: 0 10px 25px rgba(255, 87, 34, 0.15);
+  color: var(--text-white);
+}
+
+.cat-icon {
+  font-size: 26px;
+  color: var(--primary-orange);
+}
+
+.cat-card span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =========================================
+   6. KARTICE OGLASA
+   ========================================= */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.section-header h2 {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.see-all {
+  color: var(--primary-orange);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.listings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+}
+
+.listing-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: 24px;
+  padding: 25px;
+  border: 1px solid var(--glass-border);
+  transition: var(--transition);
+  cursor: pointer;
+  box-shadow: var(--glass-shadow);
+  position: relative;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.listing-card:hover {
+  transform: translateY(-8px);
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-highlight);
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(255, 87, 34, 0.1);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.card-img {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 87, 34, 0.15);
+  border: 1px solid rgba(255, 87, 34, 0.3);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--primary-orange);
+}
+
+.card-action {
+  color: var(--text-gray);
+  font-size: 20px;
+  padding: 8px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.card-action:hover {
+  color: var(--primary-orange);
+  background: rgba(255, 87, 34, 0.1);
+}
+
+.card-body h3 {
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+
+.card-body .location {
+  font-size: 13px;
+  color: var(--text-gray);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tag {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #ddd;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.price-tag {
+  background: rgba(255, 87, 34, 0.15) !important;
+  color: var(--primary-orange) !important;
+  border-color: rgba(255, 87, 34, 0.3) !important;
+  font-weight: 700;
+}
+
+/* =========================================
+   7. DONJA NAVIGACIJA (MOBILNA)
+   ========================================= */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(18, 18, 36, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--glass-border);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 12px 0;
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-gray);
+  font-size: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  padding: 5px 15px;
+  border-radius: 12px;
+  text-decoration: none;
+}
+
+.nav-item span {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.nav-item.active {
+  color: var(--primary-orange);
+  background: rgba(255, 87, 34, 0.1);
+}
+
+/* =========================================
+   8. RESPONSIVE (MEDIA QUERIES)
+   ========================================= */
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none;
+  }
+
+  .top-nav {
+    display: block;
+  }
+
+  .main-content {
+    padding-bottom: 60px;
+  }
+
+  .hero-text h2 {
+    font-size: 42px;
+  }
+
+  .listings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .cat-card {
+    flex-direction: row;
+    justify-content: center;
+    padding: 25px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .listings-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* =========================================
+   9. SPECIFIČNO ZA CIMERI (TINDER STYLE)
+   ========================================= */
+.matchmaking-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 100px);
+}
+
+.matchmaking-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.matchmaking-header h2 {
+  font-size: 28px;
+  margin-bottom: 5px;
+  background: linear-gradient(to right, #fff, #b0b0c0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.matchmaking-header p {
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.card-stack-container {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+  height: 500px;
+  margin-bottom: 30px;
+  perspective: 1000px;
+}
+
+.match-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border-radius: 24px;
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease;
+  transform-origin: bottom center;
+}
+
+.active-card {
+  z-index: 10;
+  cursor: grab;
+}
+
+.next-card {
+  z-index: 5;
+  transform: scale(0.95) translateY(20px);
+  opacity: 0.7;
+}
+
+.match-img-container {
+  position: relative;
+  width: 100%;
+  height: 65%;
+}
+
+.match-img-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.match-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(to top, rgba(10, 10, 22, 1), transparent);
+}
+
+.match-info {
+  position: absolute;
+  bottom: 15px;
+  left: 20px;
+}
+
+.match-info h3 {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.match-info p {
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.match-details {
+  padding: 15px 20px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.match-bio {
+  font-size: 14px;
+  color: #ddd;
+  margin-top: 15px;
+  line-height: 1.4;
+  font-style: italic;
+  flex-grow: 1;
+}
+
+.match-budget {
+  margin-top: 10px;
+  font-size: 14px;
+  color: var(--text-gray);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 10px;
+}
+
+.match-budget strong {
+  color: var(--primary-orange);
+  font-size: 16px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.btn-action {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: 2px solid var(--glass-border);
+  background: var(--bg-dark);
+  color: white;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-action:hover {
+  transform: scale(1.1);
+}
+
+.btn-reject {
+  color: #ff3b30;
+  border-color: rgba(255, 59, 48, 0.3);
+}
+.btn-reject:hover {
+  background: rgba(255, 59, 48, 0.1);
+}
+
+.btn-accept {
+  color: var(--primary-orange);
+  border-color: rgba(255, 87, 34, 0.3);
+}
+.btn-accept:hover {
+  background: rgba(255, 87, 34, 0.1);
+}
+
+.btn-super {
+  color: #007aff;
+  border-color: rgba(0, 122, 255, 0.3);
+  width: 50px;
+  height: 50px;
+  font-size: 18px;
+  margin-top: 7.5px;
+}
+.btn-super:hover {
+  background: rgba(0, 122, 255, 0.1);
+}
+
+.swipe-left {
+  transform: translateX(-150%) rotate(-20deg) !important;
+  opacity: 0;
+}
+
+.swipe-right {
+  transform: translateX(150%) rotate(20deg) !important;
+  opacity: 0;
+}
+
+.swipe-up {
+  transform: translateY(-150%) scale(0.8) !important;
+  opacity: 0;
+}
+
+@media (min-width: 768px) {
+  .matchmaking-layout {
+    min-height: calc(100vh - 80px);
+  }
+}
+
+/* =========================================
+   10. FILTERI (PILLS) ZA SVI OGLASI
+   ========================================= */
+.filters-section {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 15px;
+  margin-bottom: 30px;
+  width: 100%;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.filters-section::-webkit-scrollbar {
+  display: none;
+}
+
+.filter-pill {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  padding: 10px 22px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-gray);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.filter-pill:hover {
+  background: var(--glass-bg-hover);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.filter-pill.active {
+  background: var(--primary-orange);
+  color: white;
+  border-color: var(--primary-orange);
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+
+/* =========================================
+   11. MODAL ZA PRIJAVU I REGISTRACIJU
+   ========================================= */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: var(--transition);
+}
+
+.modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  background: rgba(18, 18, 36, 0.95);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  padding: 30px;
+  width: 90%;
+  max-width: 450px;
+  position: relative;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  transform: translateY(20px);
+  transition: var(--transition);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-overlay.show .modal-content {
+  transform: translateY(0);
+}
+
+.modal-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-gray);
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+  border-color: rgba(255, 59, 48, 0.3);
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.modal-header h2 {
+  font-size: 24px;
+  margin-bottom: 5px;
+  background: linear-gradient(to right, #fff, #b0b0c0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modal-header p {
+  color: var(--text-gray);
+  font-size: 14px;
+}
+
+.auth-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 25px;
+}
+
+.auth-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-gray);
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.auth-tab.active {
+  background: var(--primary-orange);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.3);
+}
+
+.auth-form {
+  display: none;
+}
+
+.auth-form.active-form {
+  display: block;
+  animation: fadeIn 0.4s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.btn-submit {
+  width: 100%;
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+
+.btn-submit:hover {
+  background: var(--gradient-end);
+  transform: translateY(-2px);
+}
+
+/* =========================================
+   12. ISPRAVKE ZA INPUTE I SELECT (DROPDOWN)
+   ========================================= */
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.input-group label {
+  font-size: 13px;
+  color: var(--text-gray);
+}
+
+.input-group input,
+.input-group select {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  padding: 12px 15px !important;
+  border-radius: 10px !important;
+  color: white !important;
+  outline: none !important;
+  width: 100%;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  transition: var(--transition);
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  border-color: var(--primary-orange) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+/* Popravka za same opcije unutar padajućeg menija */
+select option {
+  background-color: #1e1e32; /* Tamna pozadina */
+  color: white; /* Bela slova */
+  padding: 10px;
+}
+
+/* =========================================
+   13. KORPA I SAČUVANI OGLASI
+   ========================================= */
+.cart-item-card {
+  display: flex;
+  gap: 20px;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 20px;
+  align-items: center;
+  position: relative;
+}
+
+.cart-item-img {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  background: rgba(255, 87, 34, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: var(--primary-orange);
+  flex-shrink: 0;
+}
+
+.cart-item-info {
+  flex: 1;
+}
+.cart-item-info h3 {
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+.cart-item-info p {
+  font-size: 13px;
+  color: var(--text-gray);
+  margin-bottom: 10px;
+}
+.cart-item-price {
+  font-size: 18px;
+  color: var(--primary-orange);
+  font-weight: 700;
+}
+
+.btn-remove-item {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
+  border: 1px solid rgba(255, 59, 48, 0.3);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+.btn-remove-item:hover {
+  background: #ff3b30;
+  color: white;
+}
+
+.cart-summary {
+  flex: 1;
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  padding: 25px;
+  height: fit-content;
+  position: sticky;
+  top: 100px;
+}
+.cart-summary h3 {
+  font-size: 20px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 10px;
+}
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: var(--text-gray);
+}
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 20px;
+  font-weight: 700;
+}
+.summary-total span:last-child {
+  color: var(--primary-orange);
+}
+
+.btn-checkout {
+  width: 100%;
+  background: var(--primary-orange);
+  color: white;
+  border: none;
+  padding: 15px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: var(--transition);
+  box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+}
+.btn-checkout:hover {
+  background: var(--gradient-end);
+  transform: translateY(-2px);
+}
+
+.empty-cart {
+  text-align: center;
+  padding: 50px 20px;
+  color: var(--text-gray);
+}
+.empty-cart i {
+  font-size: 60px;
+  color: var(--primary-orange);
+  margin-bottom: 20px;
+}
+
+@media (max-width: 768px) {
+  .cart-container {
+    flex-direction: column;
+  }
+  .cart-summary {
+    position: static;
+  }
+}
