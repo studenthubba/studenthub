@@ -1,0 +1,207 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { createClient } from "../../../lib/supabase";
+
+export default function OglasDetaljiPage() {
+  const { id } = useParams(); // Uzimamo ID iz URL-a
+  const supabase = createClient();
+
+  const [oglas, setOglas] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchOglas = async () => {
+      // 1. Povlačimo podatke o oglasu iz baze
+      const { data, error } = await supabase
+        .from("oglas")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (data) setOglas(data);
+      setLoading(false);
+
+      // 2. Povećavamo broj pregleda pomoću naše SQL funkcije
+      await supabase.rpc("inkrementiraj_preglede", { oglas_id: Number(id) });
+    };
+
+    fetchOglas();
+  }, [id, supabase]);
+
+  if (loading)
+    return (
+      <div style={{ color: "white", textAlign: "center", marginTop: "100px" }}>
+        Učitavanje oglasa...
+      </div>
+    );
+  if (!oglas)
+    return (
+      <div style={{ color: "white", textAlign: "center", marginTop: "100px" }}>
+        Oglas nije pronađen.
+      </div>
+    );
+
+  return (
+    <>
+      <div className="background-shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+      </div>
+
+      <nav className="top-nav" style={{ display: "block" }}>
+        <div className="nav-container">
+          <div className="logo-area">
+            <div className="logo-icon">
+              <i className="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div className="logo-text">
+              <h1>StudentHub</h1>
+            </div>
+          </div>
+          <div className="nav-links">
+            <Link href="/">Početna</Link>
+            <Link href="/stanovi">Stanovi</Link>
+            <Link href="/poslovi">Poslovi</Link>
+            <Link href="/skripte">Skripte</Link>
+            <Link href="/cimeri">Cimeri</Link>
+            <Link href="/forum">Forum</Link>
+          </div>
+        </div>
+      </nav>
+
+      <main
+        className="main-content"
+        style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}
+      >
+        <Link
+          href="/svioglasi"
+          className="see-all"
+          style={{ marginBottom: "20px", display: "inline-flex" }}
+        >
+          <i className="fa-solid fa-arrow-left"></i> Nazad na oglase
+        </Link>
+
+        <div
+          className="listing-card"
+          style={{
+            maxWidth: "800px",
+            margin: "0 auto",
+            cursor: "default",
+            background: "var(--glass-bg)",
+            padding: "25px",
+            borderRadius: "24px",
+            border: "1px solid var(--glass-border)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              gap: "15px",
+              alignItems: "center",
+              marginBottom: "20px",
+            }}
+          >
+            <div
+              style={{
+                width: "80px",
+                height: "80px",
+                background: "rgba(255, 87, 34, 0.15)",
+                border: "1px solid rgba(255, 87, 34, 0.3)",
+                borderRadius: "16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "32px",
+                color: "var(--primary-orange)",
+              }}
+            >
+              <i className="fa-solid fa-tag"></i>
+            </div>
+            <div>
+              <h3
+                style={{
+                  fontSize: "24px",
+                  marginBottom: "5px",
+                  color: "white",
+                }}
+              >
+                {oglas.naslov}
+              </h3>
+              <p
+                style={{
+                  fontSize: "14px",
+                  marginBottom: 0,
+                  color: "var(--text-gray)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "6px",
+                }}
+              >
+                <i className="fa-solid fa-location-dot"></i>{" "}
+                {oglas.lokacija || "Nepoznato"}
+              </p>
+            </div>
+          </div>
+
+          <div
+            style={{
+              marginTop: "20px",
+              borderTop: "1px solid rgba(255,255,255,0.1)",
+              paddingTop: "20px",
+            }}
+          >
+            <h4
+              style={{ color: "var(--primary-orange)", marginBottom: "10px" }}
+            >
+              O oglasu
+            </h4>
+            <p
+              style={{
+                color: "#ddd",
+                fontSize: "15px",
+                lineHeight: "1.6",
+                marginBottom: "20px",
+              }}
+            >
+              {oglas.opis || "Nema opisa."}
+            </p>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                marginBottom: "20px",
+              }}
+            >
+              <span className="tag">Tip: {oglas.tip}</span>
+              {oglas.cijena && (
+                <span
+                  className="tag price-tag"
+                  style={{
+                    background: "rgba(255, 87, 34, 0.15)",
+                    color: "var(--primary-orange)",
+                    borderColor: "rgba(255, 87, 34, 0.3)",
+                    fontWeight: "700",
+                  }}
+                >
+                  {oglas.cijena} KM
+                </span>
+              )}
+              <span className="tag">
+                <i className="fa-solid fa-eye"></i> {oglas.broj_pregleda || 0}{" "}
+                pregleda
+              </span>
+            </div>
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
