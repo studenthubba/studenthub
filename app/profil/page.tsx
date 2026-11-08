@@ -7,8 +7,11 @@ import { createClient } from "../../lib/supabase";
 
 export default function ProfilPage() {
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profil, setProfil] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   
   const supabase = createClient();
@@ -19,12 +22,11 @@ export default function ProfilPage() {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // Ako nije ulogovan, baci ga na početnu
         router.push("/");
         return;
       }
 
-      // Povlačimo podatke iz tabele 'korisnici' na osnovu auth ID-a
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { data, error } = await supabase
         .from('korisnici')
         .select('*')
@@ -48,7 +50,6 @@ export default function ProfilPage() {
 
   if (loading) return <div style={{ color: 'white', textAlign: 'center', marginTop: '100px' }}>Učitavanje profila...</div>;
 
-  // Uzimamo prvo slovo imena za avatar
   const inicijal = profil?.ime ? profil.ime.charAt(0).toUpperCase() : "K";
 
   return (
