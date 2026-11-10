@@ -8,7 +8,7 @@ import { createClient } from "../../../lib/supabase";
 export default function OglasDetaljiPage() {
   const { id } = useParams(); 
   const supabase = createClient();
-
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [oglas, setOglas] = useState<Record<string, any> | null>(null);
   const [loading, setLoading] = useState(true);
 

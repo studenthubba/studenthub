@@ -7,7 +7,9 @@ import { createClient } from "../lib/supabase";
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [najnovijiOglasi, setNajnovijiOglasi] = useState<any[]>([]); // DODANO
   const supabase = createClient();
 
