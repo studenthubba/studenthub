@@ -23,6 +23,8 @@ export default function SviOglasiPage() {
       if (aktivniFilter === "stanovi") query = query.eq("tip", "stan");
       if (aktivniFilter === "poslovi") query = query.eq("tip", "posao");
       if (aktivniFilter === "skripte") query = query.eq("tip", "skripta");
+            // Cimeri nisu oglasi (oni su posebna funkcija), pa ne prikazujemo ništa
+      if (aktivniFilter === "cimeri") query = query.eq("tip", "nepostojeci_tip");
 
       const { data, error } = await query.order("datum_objave", {
         ascending: false,
@@ -186,7 +188,6 @@ export default function SviOglasiPage() {
             { id: "stanovi", label: "Stanovi" },
             { id: "poslovi", label: "Poslovi" },
             { id: "skripte", label: "Skripte" },
-            { id: "cimeri", label: "Cimeri" },
           ].map((filter) => (
             <div
               key={filter.id}

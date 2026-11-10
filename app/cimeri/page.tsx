@@ -114,25 +114,25 @@ export default function CimeriPage() {
         <div className="shape shape-3"></div>
       </div>
 
-      <nav className="top-nav">
+      <nav className="top-nav" style={{ display: "block" }}>
         <div className="nav-container">
           <div className="logo-area">
-            <div className="logo-icon">
-              <i className="fa-solid fa-graduation-cap"></i>
-            </div>
-            <div className="logo-text">
-              <h1>StudentHub</h1>
-            </div>
+            <div className="logo-icon"><i className="fa-solid fa-graduation-cap"></i></div>
+            <div className="logo-text"><h1>StudentHub</h1></div>
           </div>
           <div className="nav-links">
             <Link href="/">Početna</Link>
-            <a href="#">Stanovi</a>
-            <a href="#">Poslovi</a>
-            <a href="#">Skripte</a>
-            <Link href="/cimeri" className="active">
-              Cimeri
-            </Link>
-            <a href="#">Forum</a>
+            <Link href="/stanovi">Stanovi</Link>
+            <Link href="/poslovi">Poslovi</Link>
+            <Link href="/skripte">Skripte</Link>
+            <Link href="/cimeri" className="active">Cimeri</Link>
+            <Link href="/forum">Forum</Link>
+          </div>
+          <div className="nav-actions">
+            <Link href="/dodaj" className="btn-icon" title="Dodaj oglas"><i className="fa-solid fa-plus"></i></Link>
+            <Link href="/korpa" className="btn-icon" title="Korpa"><i className="fa-solid fa-cart-shopping"></i></Link>
+            <Link href="/poruke" className="btn-icon" title="Poruke"><i className="fa-solid fa-comment-dots"></i></Link>
+            <Link href="/profil" className="btn-icon" title="Profil i postavke"><i className="fa-solid fa-gear"></i></Link>
           </div>
         </div>
       </nav>

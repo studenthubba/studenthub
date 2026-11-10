@@ -25,8 +25,17 @@ export default function OglasDetaljiPage() {
       if (data) setOglas(data);
       setLoading(false);
 
-      // Povećavamo broj pregleda pomoću SQL funkcije
-      await supabase.rpc("inkrementiraj_preglede", { p_oglas: Number(id) });
+         // Povećavamo broj pregleda pomoću SQL funkcije
+      const sessionKey = `pregledano_${id}`;
+      
+      // Provjeravamo da li je oglas već otvoren u ovom tabu
+      if (!sessionStorage.getItem(sessionKey)) {
+        // Postavljamo ključ PRIJE nego što pozovemo funkciju, 
+        // da React ne bi stigao da je pozove dva puta
+        sessionStorage.setItem(sessionKey, "true");
+        
+        await supabase.rpc("inkrementiraj_preglede", { p_oglas: Number(id) });
+      }
 
     };
 
