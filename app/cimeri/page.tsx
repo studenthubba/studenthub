@@ -5,12 +5,13 @@ import Link from "next/link";
 import { createClient } from "../../lib/supabase";
 
 export default function CimeriPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [myProfile, setMyProfile] = useState<any>(null);
   const [userId, setUserId] = useState<number | null>(null);
 
-  // Stanja za formu
   const [budzet, setBudzet] = useState("");
   const [opis, setOpis] = useState("");
   const [tagovi, setTagovi] = useState("");
@@ -21,11 +22,13 @@ export default function CimeriPage() {
 
   useEffect(() => {
     const init = async () => {
+      // 1. Provjeravamo ko je ulogovan
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (session) {
+        // 2. Nalazimo ID korisnika u tabeli 'korisnici'
         const { data: korisnik } = await supabase
           .from("korisnici")
           .select("id")
@@ -34,28 +37,43 @@ export default function CimeriPage() {
 
         if (korisnik) {
           setUserId(korisnik.id);
-          // Provjeri ima li profil
+
+          // 3. Provjeravamo da li već ima profil u matchmaking_prefili
           const { data: profil } = await supabase
             .from("matchmaking_prefili")
             .select("*")
             .eq("korisnik_id", korisnik.id)
             .single();
 
-          if (profil) setMyProfile(profil);
+          if (profil) {
+            setMyProfile(profil);
+            // Popunjavamo formu ako želi da je mijenja
+            setBudzet(profil.budzet_max?.toString() || "");
+            setOpis(profil.opis || "");
+            setTagovi(profil.lifestyle_tagovi || "");
+            setPusac(profil.pusac || false);
+          }
         }
       }
 
-      // Ucitaj sve profile za swipe
-      const { data } = await supabase
+      // 4. Učitavamo sve profile za "swipe" (Tinder prikaz)
+      // Spajamo matchmaking_prefili sa korisnici da dobijemo ime i sliku
+      const { data: sviProfili } = await supabase
         .from("matchmaking_prefili")
         .select(
-          `id, budzet_max, lifestyle_tagovi, opis, korisnici (ime, prezime, slika_url, grad)`,
+          `
+          id, 
+          budzet_max, 
+          lifestyle_tagovi, 
+          opis, 
+          korisnici (ime, prezime, slika_url, grad)
+        `,
         )
         .limit(10);
 
-      if (data) {
+      if (sviProfili) {
         setCards(
-          data.map((item: any) => ({
+          sviProfili.map((item: any) => ({
             id: item.id,
             ime: `${item.korisnici?.ime || "Nepoznato"} ${item.korisnici?.prezime?.charAt(0) || ""}.`,
             grad: item.korisnici?.grad || "Sarajevo",
@@ -80,6 +98,7 @@ export default function CimeriPage() {
     if (!userId) return alert("Morate biti prijavljeni!");
     setSaving(true);
 
+    // Upsert znači: ako postoji profil za ovog korisnika, ažuriraj ga. Ako ne postoji, napravi novi.
     const { error } = await supabase.from("matchmaking_prefili").upsert(
       {
         korisnik_id: userId,
@@ -88,13 +107,14 @@ export default function CimeriPage() {
         lifestyle_tagovi: tagovi,
         pusac: pusac,
       },
-      { onConflict: "korisnik_id" },
+      { onConflict: "korisnik_id" }, // Ovo govori bazi da spriječi duplikate
     );
 
-    if (error) alert("Greška: " + error.message);
-    else {
-      alert("Profil sačuvan!");
-      window.location.reload();
+    if (error) {
+      alert("Greška: " + error.message);
+    } else {
+      alert("Profil uspješno sačuvan!");
+      window.location.reload(); // Osvježavamo stranicu da nestane forma i pojave se kartice
     }
     setSaving(false);
   };
@@ -117,22 +137,36 @@ export default function CimeriPage() {
       <nav className="top-nav" style={{ display: "block" }}>
         <div className="nav-container">
           <div className="logo-area">
-            <div className="logo-icon"><i className="fa-solid fa-graduation-cap"></i></div>
-            <div className="logo-text"><h1>StudentHub</h1></div>
+            <div className="logo-icon">
+              <i className="fa-solid fa-graduation-cap"></i>
+            </div>
+            <div className="logo-text">
+              <h1>StudentHub</h1>
+            </div>
           </div>
           <div className="nav-links">
             <Link href="/">Početna</Link>
             <Link href="/stanovi">Stanovi</Link>
             <Link href="/poslovi">Poslovi</Link>
             <Link href="/skripte">Skripte</Link>
-            <Link href="/cimeri" className="active">Cimeri</Link>
+            <Link href="/cimeri" className="active">
+              Cimeri
+            </Link>
             <Link href="/forum">Forum</Link>
           </div>
           <div className="nav-actions">
-            <Link href="/dodaj" className="btn-icon" title="Dodaj oglas"><i className="fa-solid fa-plus"></i></Link>
-            <Link href="/korpa" className="btn-icon" title="Korpa"><i className="fa-solid fa-cart-shopping"></i></Link>
-            <Link href="/poruke" className="btn-icon" title="Poruke"><i className="fa-solid fa-comment-dots"></i></Link>
-            <Link href="/profil" className="btn-icon" title="Profil i postavke"><i className="fa-solid fa-gear"></i></Link>
+            <Link href="/dodaj" className="btn-icon" title="Dodaj oglas">
+              <i className="fa-solid fa-plus"></i>
+            </Link>
+            <Link href="/korpa" className="btn-icon" title="Korpa">
+              <i className="fa-solid fa-cart-shopping"></i>
+            </Link>
+            <Link href="/poruke" className="btn-icon" title="Poruke">
+              <i className="fa-solid fa-comment-dots"></i>
+            </Link>
+            <Link href="/profil" className="btn-icon" title="Profil i postavke">
+              <i className="fa-solid fa-gear"></i>
+            </Link>
           </div>
         </div>
       </nav>

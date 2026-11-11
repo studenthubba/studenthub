@@ -1,73 +1,130 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "../../lib/supabase";
 
 export default function ForumPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [teme, setTeme] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  // Početne teme
-  const [teme, setTeme] = useState([
-    {
-      id: 1,
-      naslov: "Kakva je Analiza 2 kod profesora Hadžića?",
-      autor: "Amina T.",
-      vrijeme: "prije 2 sata",
-      kategorija: "ETF Sarajevo",
-      ikona: "fa-graduation-cap",
-      boja: "linear-gradient(135deg, #FF5722, #FF3D00)",
-      odgovora: 0,
-      pregleda: 0,
-    },
-    {
-      id: 2,
-      naslov: "Re: FK Sarajevo - Navijači i studentske akcije",
-      autor: "plisek",
-      vrijeme: "juče u 11:58",
-      kategorija: "Sport",
-      ikona: "fa-futbol",
-      boja: "linear-gradient(135deg, #4CAF50, #8BC34A)",
-      odgovora: 0,
-      pregleda: 0,
-    },
-  ]);
+  const supabase = createClient();
 
-  const handleNovaTema = (e: React.FormEvent<HTMLFormElement>) => {
+  // 1. Učitavamo teme iz baze
+  const fetchTeme = async () => {
+    const { data, error } = await supabase
+      .from("forum_teme")
+      .select(
+        `
+        id,
+        naslov,
+        prikaceno,
+        kreirano_u,
+        forum_kategorije (naziv),
+        korisnici (ime, prezime)
+      `,
+      )
+      .order("kreirano_u", { ascending: false });
+
+    if (data) setTeme(data);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchTeme();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2. Logika za dodavanje nove teme
+  const handleNovaTema = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setSaving(true);
+
     const form = e.currentTarget;
     const naslov = (form.elements.namedItem("naslov") as HTMLInputElement)
       .value;
-    const kategorija = (
+    const kategorijaNaziv = (
       form.elements.namedItem("kategorija") as HTMLSelectElement
     ).value;
 
-    const novaTema = {
-      id: Date.now(),
-      naslov: naslov,
-      autor: "Vi", // Kasnije ide iz baze
-      vrijeme: "Upravo sada",
-      kategorija: kategorija,
-      ikona: "fa-comment-dots",
-      boja: "linear-gradient(135deg, var(--primary-orange), var(--gradient-end))",
-      odgovora: 0,
-      pregleda: 0,
-    };
+    // Provjera da li je korisnik ulogovan
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      alert("Morate biti prijavljeni da biste započeli temu.");
+      setSaving(false);
+      return;
+    }
 
-    setTeme([novaTema, ...teme]);
-    setIsModalOpen(false);
-    form.reset();
+    // Nalazimo ID korisnika u tabeli 'korisnici'
+    const { data: korisnik } = await supabase
+      .from("korisnici")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (!korisnik) {
+      alert("Greška: Korisnik nije pronađen.");
+      setSaving(false);
+      return;
+    }
+
+    // Nalazimo ID kategorije na osnovu izabranog naziva
+    const { data: kategorija } = await supabase
+      .from("forum_kategorije")
+      .select("id")
+      .eq("naziv", kategorijaNaziv)
+      .single();
+
+    // Upisujemo u tabelu forum_teme
+    const { error } = await supabase.from("forum_teme").insert({
+      naslov: naslov,
+      kategorija_id: kategorija?.id || null,
+      autor_id: korisnik.id,
+      prikaceno: false,
+    });
+
+    if (error) {
+      alert("Greška pri objavi: " + error.message);
+      setSaving(false);
+    } else {
+      alert("Tema uspješno objavljena!");
+      setIsModalOpen(false);
+      form.reset();
+      fetchTeme(); // Osvježavamo listu tema bez reloada stranice
+      setSaving(false);
+    }
   };
+
+  // Pomoćna funkcija za formatiranje datuma
+  const formatirajDatum = (datum: string) => {
+    return new Date(datum).toLocaleDateString("bs-BA", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading)
+    return (
+      <div style={{ color: "white", textAlign: "center", marginTop: "100px" }}>
+        Učitavanje foruma...
+      </div>
+    );
 
   return (
     <>
-      {/* POZADINSKE SFERE */}
       <div className="background-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
         <div className="shape shape-3"></div>
       </div>
 
-      {/* NAVIGACIJA */}
       <nav className="top-nav" style={{ display: "block" }}>
         <div className="nav-container">
           <div className="logo-area">
@@ -80,9 +137,9 @@ export default function ForumPage() {
           </div>
           <div className="nav-links">
             <Link href="/">Početna</Link>
-            <a href="#">Stanovi</a>
-            <a href="#">Poslovi</a>
-            <a href="#">Skripte</a>
+            <Link href="/stanovi">Stanovi</Link>
+            <Link href="/poslovi">Poslovi</Link>
+            <Link href="/skripte">Skripte</Link>
             <Link href="/cimeri">Cimeri</Link>
             <Link href="/forum" className="active">
               Forum
@@ -92,9 +149,12 @@ export default function ForumPage() {
             <Link href="/dodaj" className="btn-icon" title="Dodaj oglas">
               <i className="fa-solid fa-plus"></i>
             </Link>
-            <a href="#" className="btn-icon" title="Poruke">
+            <Link href="/korpa" className="btn-icon" title="Korpa">
+              <i className="fa-solid fa-cart-shopping"></i>
+            </Link>
+            <Link href="/poruke" className="btn-icon" title="Poruke">
               <i className="fa-solid fa-comment-dots"></i>
-            </a>
+            </Link>
             <Link href="/profil" className="btn-icon" title="Profil i postavke">
               <i className="fa-solid fa-gear"></i>
             </Link>
@@ -102,7 +162,6 @@ export default function ForumPage() {
         </div>
       </nav>
 
-      {/* GLAVNI SADRŽAJ */}
       <main
         className="main-content"
         style={{
@@ -159,145 +218,156 @@ export default function ForumPage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "15px" }}>
-          {teme.map((tema) => (
+          {teme.length === 0 ? (
             <div
-              key={tema.id}
               style={{
-                background: "var(--glass-bg)",
-                backdropFilter: "var(--glass-blur)",
-                border: "1px solid var(--glass-border)",
-                borderRadius: "16px",
-                padding: "20px",
-                display: "flex",
-                gap: "20px",
-                alignItems: "center",
+                textAlign: "center",
+                padding: "50px",
+                color: "var(--text-gray)",
               }}
             >
-              <div
+              <i
+                className="fa-solid fa-comments"
                 style={{
-                  width: "50px",
-                  height: "50px",
-                  borderRadius: "12px",
-                  background: tema.boja,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "24px",
-                  color: "white",
-                  flexShrink: 0,
+                  fontSize: "50px",
+                  marginBottom: "20px",
+                  color: "var(--primary-orange)",
                 }}
-              >
-                <i className={`fa-solid ${tema.ikona}`}></i>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontSize: "18px",
-                    fontWeight: "600",
-                    marginBottom: "5px",
-                    color: "white",
-                  }}
-                >
-                  {tema.naslov}
-                </div>
-                <div
-                  style={{
-                    fontSize: "13px",
-                    color: "var(--text-gray)",
-                    display: "flex",
-                    gap: "15px",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <i className="fa-regular fa-user"></i> {tema.autor}
-                  </span>
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <i className="fa-regular fa-clock"></i> {tema.vrijeme}
-                  </span>
-                  <span
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "5px",
-                    }}
-                  >
-                    <i className="fa-solid fa-tag"></i> {tema.kategorija}
-                  </span>
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  gap: "20px",
-                  alignItems: "center",
-                  marginLeft: "auto",
-                  paddingLeft: "20px",
-                  borderLeft: "1px solid rgba(255,255,255,0.1)",
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <h4
-                    style={{
-                      fontSize: "18px",
-                      color: "var(--primary-orange)",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {tema.odgovora}
-                  </h4>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-gray)",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Odgovora
-                  </p>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <h4
-                    style={{
-                      fontSize: "18px",
-                      color: "var(--primary-orange)",
-                      marginBottom: "2px",
-                    }}
-                  >
-                    {tema.pregleda}
-                  </h4>
-                  <p
-                    style={{
-                      fontSize: "11px",
-                      color: "var(--text-gray)",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Pregleda
-                  </p>
-                </div>
-              </div>
+              ></i>
+              <h3 style={{ fontSize: "20px", color: "white" }}>
+                Nema aktivnih tema.
+              </h3>
+              <p>Budi prvi koji će započeti diskusiju!</p>
             </div>
-          ))}
+          ) : (
+            teme.map((tema) => (
+              <Link
+                key={tema.id}
+                href={`/tema/${tema.id}`}
+                style={{ textDecoration: "none" }}
+              >
+                <div
+                  style={{
+                    background: "var(--glass-bg)",
+                    backdropFilter: "var(--glass-blur)",
+                    border: "1px solid var(--glass-border)",
+                    borderRadius: "16px",
+                    padding: "20px",
+                    display: "flex",
+                    gap: "20px",
+                    alignItems: "center",
+                    transition: "var(--transition)",
+                  }}
+                  className="hover:border-orange-500"
+                >
+                  <div
+                    style={{
+                      width: "50px",
+                      height: "50px",
+                      borderRadius: "12px",
+                      background:
+                        "linear-gradient(135deg, var(--primary-orange), var(--gradient-end))",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "24px",
+                      color: "white",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <i className="fa-solid fa-comment-dots"></i>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div
+                      style={{
+                        fontSize: "18px",
+                        fontWeight: "600",
+                        marginBottom: "5px",
+                        color: "white",
+                      }}
+                    >
+                      {tema.naslov}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "13px",
+                        color: "var(--text-gray)",
+                        display: "flex",
+                        gap: "15px",
+                        alignItems: "center",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <i className="fa-regular fa-user"></i>{" "}
+                        {tema.korisnici?.ime} {tema.korisnici?.prezime}
+                      </span>
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <i className="fa-regular fa-clock"></i>{" "}
+                        {formatirajDatum(tema.kreirano_u)}
+                      </span>
+                      <span
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "5px",
+                        }}
+                      >
+                        <i className="fa-solid fa-tag"></i>{" "}
+                        {tema.forum_kategorije?.naziv || "Općenito"}
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: "20px",
+                      alignItems: "center",
+                      marginLeft: "auto",
+                      paddingLeft: "20px",
+                      borderLeft: "1px solid rgba(255,255,255,0.1)",
+                    }}
+                  >
+                    <div style={{ textAlign: "center" }}>
+                      <h4
+                        style={{
+                          fontSize: "18px",
+                          color: "var(--primary-orange)",
+                          marginBottom: "2px",
+                        }}
+                      >
+                        0
+                      </h4>
+                      <p
+                        style={{
+                          fontSize: "11px",
+                          color: "var(--text-gray)",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Odgovora
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
         </div>
       </main>
 
-      {/* MODAL ZA NOVU TEMU */}
       {isModalOpen && (
         <div
           style={{
@@ -404,10 +474,11 @@ export default function ForumPage() {
                     marginBottom: "5px",
                   }}
                 >
-                  Kategorija / Tag
+                  Kategorija
                 </label>
                 <select
                   name="kategorija"
+                  required
                   style={{
                     width: "100%",
                     background: "rgba(255,255,255,0.05)",
@@ -434,16 +505,32 @@ export default function ForumPage() {
                   >
                     Ekonomski fakultet
                   </option>
-                  <option value="Stanovi" style={{ background: "#1E1E32" }}>
-                    Stanovi
+                  <option
+                    value="Pravni fakultet"
+                    style={{ background: "#1E1E32" }}
+                  >
+                    Pravni fakultet
+                  </option>
+                  <option
+                    value="Stanovi i cimeri"
+                    style={{ background: "#1E1E32" }}
+                  >
+                    Stanovi i cimeri
                   </option>
                   <option value="Sport" style={{ background: "#1E1E32" }}>
                     Sport
+                  </option>
+                  <option
+                    value="Ispiti i skripte"
+                    style={{ background: "#1E1E32" }}
+                  >
+                    Ispiti i skripte
                   </option>
                 </select>
               </div>
               <button
                 type="submit"
+                disabled={saving}
                 style={{
                   width: "100%",
                   background: "var(--primary-orange)",
@@ -453,36 +540,36 @@ export default function ForumPage() {
                   borderRadius: "12px",
                   fontWeight: "600",
                   fontSize: "16px",
-                  cursor: "pointer",
+                  cursor: saving ? "not-allowed" : "pointer",
                   boxShadow: "0 4px 15px rgba(255, 87, 34, 0.4)",
                   marginTop: "10px",
+                  opacity: saving ? 0.7 : 1,
                 }}
               >
-                Objavi temu
+                {saving ? "Objavljivanje..." : "Objavi temu"}
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* DONJA MOBILNA NAVIGACIJA */}
       <nav className="mobile-bottom-nav">
         <Link href="/" className="nav-item">
           <i className="fa-solid fa-house"></i>
           <span>Početna</span>
         </Link>
-        <a href="#" className="nav-item">
+        <Link href="/svioglasi" className="nav-item">
           <i className="fa-solid fa-magnifying-glass"></i>
           <span>Istraži</span>
-        </a>
+        </Link>
         <Link href="/dodaj" className="nav-item">
           <i className="fa-solid fa-plus-circle"></i>
           <span>Dodaj</span>
         </Link>
-        <a href="#" className="nav-item">
+        <Link href="/poruke" className="nav-item">
           <i className="fa-solid fa-comments"></i>
           <span>Poruke</span>
-        </a>
+        </Link>
         <Link href="/profil" className="nav-item">
           <i className="fa-regular fa-user"></i>
           <span>Profil</span>

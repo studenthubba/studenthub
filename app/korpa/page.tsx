@@ -1,47 +1,182 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { createClient } from "../../lib/supabase";
+import { useRouter } from "next/navigation";
 
 export default function KorpaPage() {
-  // Privremeni podaci za korpu (kasnije idu iz baze)
-  const [korpa, setKorpa] = useState<any[]>([
-    {
-      id: 1,
-      naslov: "Skripta - Analiza 2",
-      opis: "Skripta - ETF Sarajevo",
-      cijena: 25,
-      ikona: "fa-solid fa-file-code",
-    },
-  ]);
-
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [korpa, setKorpa] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
   const [nacinDostave, setNacinDostave] = useState("");
+  const [adresa, setAdresa] = useState("");
 
-  const handleUkloni = (id: number) => {
-    setKorpa(korpa.filter((item) => item.id !== id));
+  const supabase = createClient();
+  const router = useRouter();
+
+  // 1. Učitavanje korpe iz baze
+  const fetchKorpa = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) {
+      setLoading(false);
+      return; // Ako nije ulogovan, korpa je prazna
+    }
+
+    // Nalazimo ID korisnika
+    const { data: korisnik } = await supabase
+      .from("korisnici")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (!korisnik) {
+      setLoading(false);
+      return;
+    }
+
+    // Povlačimo stavke iz korpe i spajamo sa tabelom oglas
+    const { data, error } = await supabase
+      .from("korpa_stavke")
+      .select(
+        `
+        id,
+        oglas_id,
+        oglas (
+          naslov,
+          opis,
+          cijena,
+          tip
+        )
+      `,
+      )
+      .eq("korisnik_id", korisnik.id);
+
+    if (data) {
+      // Formatiramo podatke za prikaz
+      const formatirano = data.map((stavka: any) => ({
+        id: stavka.id,
+        oglas_id: stavka.oglas_id,
+        naslov: stavka.oglas?.naslov || "Nepoznat oglas",
+        opis: stavka.oglas?.opis || "",
+        cijena: stavka.oglas?.cijena || 0,
+        ikona:
+          stavka.oglas?.tip === "skripta"
+            ? "fa-solid fa-file-code"
+            : stavka.oglas?.tip === "stan"
+              ? "fa-solid fa-building"
+              : "fa-solid fa-box",
+      }));
+      setKorpa(formatirano);
+    }
+    setLoading(false);
   };
 
-  const handleKupovina = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchKorpa();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 2. Uklanjanje iz korpe
+  const handleUkloni = async (id: number) => {
+    const { error } = await supabase.from("korpa_stavke").delete().eq("id", id);
+    if (!error) {
+      // Uklanjamo iz lokalnog stanja bez reloada
+      setKorpa(korpa.filter((item) => item.id !== id));
+    } else {
+      alert("Greška pri uklanjanju: " + error.message);
+    }
+  };
+
+  // 3. Kupovina (Kreiranje narudžbe)
+  const handleKupovina = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (korpa.length === 0) return;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return alert("Morate biti prijavljeni.");
+
+    const { data: korisnik } = await supabase
+      .from("korisnici")
+      .select("id")
+      .eq("auth_user_id", user.id)
+      .single();
+    if (!korisnik) return alert("Korisnik nije pronađen.");
+
+    // Uzimamo ID prodavca iz prvog oglasa u korpi (pretpostavka: sve stavke su od istog prodavca)
+    const { data: oglas } = await supabase
+      .from("oglas")
+      .select("korisnik_id")
+      .eq("id", korpa[0].oglas_id)
+      .single();
+    if (!oglas) return alert("Greška sa oglasom.");
+
+    const ukupnaCijena = korpa.reduce((sum, item) => sum + item.cijena, 0);
+
+    // Kreiramo narudžbu
+    const { data: narudzba, error: narudzbaError } = await supabase
+      .from("narudzbe")
+      .insert({
+        kupac_id: korisnik.id,
+        prodavac_id: oglas.korisnik_id,
+        ukupni_iznos: ukupnaCijena,
+        nacin_dostave: nacinDostave === "Dostava na adresu" ? "posta" : "licno",
+        adresa_primaoca: adresa,
+        status: "u_obradi",
+      })
+      .select()
+      .single();
+
+    if (narudzbaError) {
+      alert("Greška pri kreiranju narudžbe: " + narudzbaError.message);
+      return;
+    }
+
+    // Ubacujemo stavke narudžbe
+    const stavkeZaUbacivanje = korpa.map((item) => ({
+      narudzba_id: narudzba.id,
+      oglas_id: item.oglas_id,
+      cijena: item.cijena,
+    }));
+
+    const { error: stavkeError } = await supabase
+      .from("narudzba_stavke")
+      .insert(stavkeZaUbacivanje);
+
+    if (stavkeError) {
+      alert("Greška pri dodavanju stavki: " + stavkeError.message);
+      return;
+    }
+
+    // Brišemo korpu nakon uspješne kupovine
+    await supabase.from("korpa_stavke").delete().eq("korisnik_id", korisnik.id);
+
     alert("Kupovina uspješna! Hvala na povjerenju.");
-    setKorpa([]);
     setIsCheckoutModalOpen(false);
-    window.location.href = "/";
+    router.push("/");
   };
+
+  if (loading)
+    return (
+      <div style={{ color: "white", textAlign: "center", marginTop: "100px" }}>
+        Učitavanje korpe...
+      </div>
+    );
 
   const ukupnaCijena = korpa.reduce((sum, item) => sum + item.cijena, 0);
 
   return (
     <>
-      {/* POZADINSKE SFERE */}
       <div className="background-shapes">
         <div className="shape shape-1"></div>
         <div className="shape shape-2"></div>
         <div className="shape shape-3"></div>
       </div>
 
-      {/* NAVIGACIJA */}
       <nav className="top-nav" style={{ display: "block" }}>
         <div className="nav-container">
           <div className="logo-area">
@@ -54,9 +189,9 @@ export default function KorpaPage() {
           </div>
           <div className="nav-links">
             <Link href="/">Početna</Link>
-            <a href="#">Stanovi</a>
-            <a href="#">Poslovi</a>
-            <a href="#">Skripte</a>
+            <Link href="/stanovi">Stanovi</Link>
+            <Link href="/poslovi">Poslovi</Link>
+            <Link href="/skripte">Skripte</Link>
             <Link href="/cimeri">Cimeri</Link>
             <Link href="/forum">Forum</Link>
           </div>
@@ -91,9 +226,9 @@ export default function KorpaPage() {
                 {korpa.length}
               </span>
             </Link>
-            <a href="#" className="btn-icon" title="Poruke">
+            <Link href="/poruke" className="btn-icon" title="Poruke">
               <i className="fa-solid fa-comment-dots"></i>
-            </a>
+            </Link>
             <Link href="/profil" className="btn-icon" title="Profil i postavke">
               <i className="fa-solid fa-gear"></i>
             </Link>
@@ -101,7 +236,6 @@ export default function KorpaPage() {
         </div>
       </nav>
 
-      {/* GLAVNI SADRŽAJ */}
       <main
         className="main-content"
         style={{
@@ -176,7 +310,7 @@ export default function KorpaPage() {
                 </h3>
                 <p>Idite na oglase i pronađite nešto zanimljivo.</p>
                 <Link
-                  href="/"
+                  href="/svioglasi"
                   style={{
                     display: "inline-block",
                     marginTop: "20px",
@@ -420,7 +554,7 @@ export default function KorpaPage() {
                 Završetak kupovine
               </h2>
               <p style={{ color: "var(--text-gray)", fontSize: "14px" }}>
-                Izaberite način plaćanja i dostave.
+                Izaberite način dostave i potvrdite.
               </p>
             </div>
 
@@ -428,41 +562,6 @@ export default function KorpaPage() {
               onSubmit={handleKupovina}
               style={{ display: "flex", flexDirection: "column", gap: "15px" }}
             >
-              <div>
-                <label
-                  style={{
-                    display: "block",
-                    fontSize: "13px",
-                    color: "var(--text-gray)",
-                    marginBottom: "5px",
-                  }}
-                >
-                  Način plaćanja
-                </label>
-                <select
-                  required
-                  style={{
-                    width: "100%",
-                    background: "rgba(255,255,255,0.05)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    padding: "12px 15px",
-                    borderRadius: "10px",
-                    color: "white",
-                    outline: "none",
-                  }}
-                >
-                  <option value="" disabled>
-                    Izaberi način plaćanja...
-                  </option>
-                  <option value="Pouzećem" style={{ background: "#1E1E32" }}>
-                    Pouzećem (Plaćanje pri dostavi)
-                  </option>
-                  <option value="Karticom" style={{ background: "#1E1E32" }}>
-                    Karticom (Online)
-                  </option>
-                </select>
-              </div>
-
               <div>
                 <label
                   style={{
@@ -520,6 +619,8 @@ export default function KorpaPage() {
                   </label>
                   <input
                     type="text"
+                    value={adresa}
+                    onChange={(e) => setAdresa(e.target.value)}
                     placeholder="Ulica, broj, grad"
                     required
                     style={{
@@ -557,24 +658,23 @@ export default function KorpaPage() {
         </div>
       )}
 
-      {/* DONJA MOBILNA NAVIGACIJA */}
       <nav className="mobile-bottom-nav">
         <Link href="/" className="nav-item">
           <i className="fa-solid fa-house"></i>
           <span>Početna</span>
         </Link>
-        <a href="#" className="nav-item">
+        <Link href="/svioglasi" className="nav-item">
           <i className="fa-solid fa-magnifying-glass"></i>
           <span>Istraži</span>
-        </a>
+        </Link>
         <Link href="/dodaj" className="nav-item">
           <i className="fa-solid fa-plus-circle"></i>
           <span>Dodaj</span>
         </Link>
-        <a href="#" className="nav-item">
+        <Link href="/poruke" className="nav-item">
           <i className="fa-solid fa-comments"></i>
           <span>Poruke</span>
-        </a>
+        </Link>
         <Link href="/profil" className="nav-item">
           <i className="fa-regular fa-user"></i>
           <span>Profil</span>
