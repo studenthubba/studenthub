@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase";
@@ -8,6 +8,9 @@ import { createClient } from "../../lib/supabase";
 export default function DodajOglasPage() {
   const [loading, setLoading] = useState(false);
   const [tipOglasa, setTipOglasa] = useState("");
+  const [slika, setSlika] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const supabase = createClient();
   const router = useRouter();
 
@@ -20,11 +23,9 @@ export default function DodajOglasPage() {
     const lokacija = (form.elements.namedItem("lokacija") as HTMLInputElement).value;
     const opis = (form.elements.namedItem("opis") as HTMLTextAreaElement).value;
     
-    // Uzimamo cijenu ako postoji
     const cijenaElement = form.elements.namedItem("cijena") as HTMLInputElement;
     const cijena = cijenaElement ? parseFloat(cijenaElement.value) : null;
 
-    // 1. Provjera da li je korisnik ulogovan
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       alert("Morate biti prijavljeni da biste dodali oglas.");
@@ -32,7 +33,6 @@ export default function DodajOglasPage() {
       return;
     }
 
-    // 2. Nalazimo ID korisnika u tabeli 'korisnici'
     const { data: korisnik } = await supabase
       .from("korisnici")
       .select("id")
@@ -45,14 +45,13 @@ export default function DodajOglasPage() {
       return;
     }
 
-    // 3. Pretvaramo naš tip u tip koji baza prepoznaje
     let tipOglasaDB = "stan";
     if (tipOglasa === "poslovi") tipOglasaDB = "posao";
     if (tipOglasa === "skripte") tipOglasaDB = "skripta";
     if (tipOglasa === "cimeri") tipOglasaDB = "stan"; 
 
-    // 4. Upisujemo u bazu
-    const { error } = await supabase.from("oglas").insert({
+    // 1. Upisujemo oglas u bazu
+    const { data: noviOglas, error } = await supabase.from("oglas").insert({
       korisnik_id: korisnik.id,
       naslov: naslov,
       opis: opis,
@@ -60,15 +59,41 @@ export default function DodajOglasPage() {
       tip: tipOglasaDB,
       cijena: cijena,
       status: "aktivan",
-    });
+    }).select().single();
 
     if (error) {
       alert("Greška pri objavi: " + error.message);
       setLoading(false);
-    } else {
-      alert("Oglas uspješno objavljen!");
-      router.push("/svioglasi");
+      return;
     }
+
+    // 2. Ako je korisnik izabrao sliku, šaljemo je na Supabase Storage
+    if (slika && noviOglas) {
+      const fileExt = slika.name.split('.').pop();
+      const fileName = `${korisnik.id}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("oglasi-slike")
+        .upload(fileName, slika);
+
+      if (uploadError) {
+        alert("Oglas je objavljen, ali slika nije uspjela: " + uploadError.message);
+      } else {
+        // 3. Uzimamo javni URL slike i upisujemo u tabelu oglasi_slike
+        const { data: { publicUrl } } = supabase.storage
+          .from("oglasi-slike")
+          .getPublicUrl(fileName);
+
+        await supabase.from("oglasi_slike").insert({
+          oglas_id: noviOglas.id,
+          slika_url: publicUrl,
+          redoslijed: 0
+        });
+      }
+    }
+
+    alert("Oglas uspješno objavljen!");
+    router.push("/svioglasi");
   };
 
   return (
@@ -149,7 +174,6 @@ export default function DodajOglasPage() {
               <input name="lokacija" type="text" placeholder="npr. Sarajevo, Grbavica" required style={{ width: "100%", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)", padding: "14px 16px", borderRadius: "12px", color: "white", fontSize: "15px", outline: "none" }} />
             </div>
 
-            {/* DINAMIČKA POLJA SA DODATIM NAME ATRIBUTIMA */}
             {(tipOglasa === "stanovi" || tipOglasa === "cimeri") && (
               <div style={{ display: "flex", flexDirection: "column", gap: "8px", animation: "fadeIn 0.4s ease" }}>
                 <label style={{ fontSize: "14px", color: "var(--text-gray)", fontWeight: "500" }}>Cijena (KM/mj)</label>
@@ -172,11 +196,24 @@ export default function DodajOglasPage() {
             )}
 
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-              <label style={{ fontSize: "14px", color: "var(--text-gray)", fontWeight: "500" }}>Slike (Opciono)</label>
-              <div style={{ border: "2px dashed var(--glass-border)", borderRadius: "16px", padding: "30px", textAlign: "center", cursor: "pointer", background: "rgba(255, 255, 255, 0.02)" }}>
+              <label style={{ fontSize: "14px", color: "var(--text-gray)", fontWeight: "500" }}>Slika (Opciono)</label>
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                style={{ border: "2px dashed var(--glass-border)", borderRadius: "16px", padding: "30px", textAlign: "center", cursor: "pointer", background: "rgba(255, 255, 255, 0.02)" }}
+              >
                 <i className="fa-solid fa-cloud-arrow-up" style={{ fontSize: "30px", color: "var(--primary-orange)", marginBottom: "10px" }}></i>
-                <p style={{ color: "white" }}>Klikni da dodaš sliku</p>
-                <input type="file" accept="image/*" style={{ display: "none" }} />
+                <p style={{ color: "white" }}>{slika ? slika.name : "Klikni da dodaš sliku"}</p>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  style={{ display: "none" }} 
+                  ref={fileInputRef}
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setSlika(e.target.files[0]);
+                    }
+                  }}
+                />
               </div>
             </div>
 
