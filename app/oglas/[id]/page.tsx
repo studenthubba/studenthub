@@ -148,6 +148,13 @@ export default function OglasDetaljiPage() {
     router.push("/poruke");
   };
 
+  // DUGME ZA SHARE
+  const handleShare = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert("Link oglasa je kopiran! Možete ga zalijepiti gdje god želite.");
+  };
+
   if (loading)
     return (
       <div style={{ color: "white", textAlign: "center", marginTop: "100px" }}>
@@ -480,6 +487,29 @@ export default function OglasDetaljiPage() {
               >
                 <i className="fa-regular fa-heart"></i> Sačuvaj oglas
               </button>
+
+              {/* DUGME ZA SHARE */}
+              <button
+                onClick={handleShare}
+                style={{
+                  flex: "1 1 200px",
+                  background: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "white",
+                  padding: "15px",
+                  borderRadius: "12px",
+                  fontWeight: "600",
+                  fontSize: "16px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "10px",
+                  transition: "var(--transition)",
+                }}
+              >
+                <i className="fa-solid fa-share-nodes"></i> Podijeli
+              </button>
             </div>
 
             <div style={{ display: "flex", gap: "15px", flexWrap: "wrap" }}>
@@ -506,7 +536,7 @@ export default function OglasDetaljiPage() {
                 <i className="fa-solid fa-comment-dots"></i> Pošalji poruku
               </button>
 
-              {/* POZOVI (samo ako ima telefona - zasad sakriveno) */}
+              {/* POZOVI */}
               <button
                 style={{
                   flex: "0.5 1 120px",
