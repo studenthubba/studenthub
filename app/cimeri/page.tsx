@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase";
 
@@ -18,6 +18,14 @@ export default function CimeriPage() {
   const [pusac, setPusac] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Stanja za swipe
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | "up" | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [dragOffsetX, setDragOffsetX] = useState(0);
+  const cardRef = useRef<HTMLDivElement>(null);
+
   const supabase = createClient();
 
   useEffect(() => {
@@ -28,7 +36,6 @@ export default function CimeriPage() {
       } = await supabase.auth.getSession();
 
       if (session) {
-        // 2. Nalazimo ID korisnika u tabeli 'korisnici'
         const { data: korisnik } = await supabase
           .from("korisnici")
           .select("id")
@@ -38,7 +45,6 @@ export default function CimeriPage() {
         if (korisnik) {
           setUserId(korisnik.id);
 
-          // 3. Provjeravamo da li već ima profil u matchmaking_prefili
           const { data: profil } = await supabase
             .from("matchmaking_prefili")
             .select("*")
@@ -47,46 +53,60 @@ export default function CimeriPage() {
 
           if (profil) {
             setMyProfile(profil);
-            // Popunjavamo formu ako želi da je mijenja
             setBudzet(profil.budzet_max?.toString() || "");
             setOpis(profil.opis || "");
             setTagovi(profil.lifestyle_tagovi || "");
             setPusac(profil.pusac || false);
           }
+
+          // 2. Učitavamo profile, ALI preskačemo one koje smo već swipovali
+          
+          // Prvo nalazimo sve ID-jeve koje je korisnik već swipovao (lajk ili odbijeno)
+          const { data: swipeOdluke } = await supabase
+            .from("swipe_odluke")
+            .select("oglas_id")
+            .eq("korisnik_id", korisnik.id)
+            .in("odluka", ["lajk", "odbijeno"]); // Ne sklanjamo 'preskoceno'
+
+          const vecSwipovaniIds = swipeOdluke?.map(o => o.oglas_id) || [];
+
+          // Uzimamo sve profile za cimere
+          let query = supabase
+            .from("matchmaking_prefili")
+            .select(`
+              id, 
+              budzet_max, 
+              lifestyle_tagovi, 
+              opis, 
+              korisnici (id, ime, prezime, slika_url, grad)
+            `)
+            .neq("korisnik_id", korisnik.id) // Ne prikazuj sam sebe
+            .limit(20);
+
+          // Ako ima swipovanih, isključi ih iz upita
+          if (vecSwipovaniIds.length > 0) {
+            query = query.not("korisnik_id", "in", `(${vecSwipovaniIds.join(",")})`);
+          }
+
+          const { data: sviProfili } = await query;
+
+          if (sviProfili) {
+            setCards(
+              sviProfili.map((item: any) => ({
+                id: item.id,
+                korisnikId: item.korisnici?.id, // Bitno nam je za čuvanje odluke
+                ime: `${item.korisnici?.ime || "Nepoznato"} ${item.korisnici?.prezime?.charAt(0) || ""}.`,
+                grad: item.korisnici?.grad || "Sarajevo",
+                slika: item.korisnici?.slika_url || "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80",
+                tagovi: item.lifestyle_tagovi
+                  ? item.lifestyle_tagovi.split(",").map((t: string) => t.trim())
+                  : ["Student"],
+                bio: item.opis || "Nema opisa.",
+                budzet: `${item.budzet_max || "?"} KM/mj`,
+              })),
+            );
+          }
         }
-      }
-
-      // 4. Učitavamo sve profile za "swipe" (Tinder prikaz)
-      // Spajamo matchmaking_prefili sa korisnici da dobijemo ime i sliku
-      const { data: sviProfili } = await supabase
-        .from("matchmaking_prefili")
-        .select(
-          `
-          id, 
-          budzet_max, 
-          lifestyle_tagovi, 
-          opis, 
-          korisnici (ime, prezime, slika_url, grad)
-        `,
-        )
-        .limit(10);
-
-      if (sviProfili) {
-        setCards(
-          sviProfili.map((item: any) => ({
-            id: item.id,
-            ime: `${item.korisnici?.ime || "Nepoznato"} ${item.korisnici?.prezime?.charAt(0) || ""}.`,
-            grad: item.korisnici?.grad || "Sarajevo",
-            slika:
-              item.korisnici?.slika_url ||
-              "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80",
-            tagovi: item.lifestyle_tagovi
-              ? item.lifestyle_tagovi.split(",").map((t: string) => t.trim())
-              : ["Student"],
-            bio: item.opis || "Nema opisa.",
-            budzet: `${item.budzet_max || "?"} KM/mj`,
-          })),
-        );
       }
       setLoading(false);
     };
@@ -98,7 +118,6 @@ export default function CimeriPage() {
     if (!userId) return alert("Morate biti prijavljeni!");
     setSaving(true);
 
-    // Upsert znači: ako postoji profil za ovog korisnika, ažuriraj ga. Ako ne postoji, napravi novi.
     const { error } = await supabase.from("matchmaking_prefili").upsert(
       {
         korisnik_id: userId,
@@ -107,16 +126,74 @@ export default function CimeriPage() {
         lifestyle_tagovi: tagovi,
         pusac: pusac,
       },
-      { onConflict: "korisnik_id" }, // Ovo govori bazi da spriječi duplikate
+      { onConflict: "korisnik_id" },
     );
 
     if (error) {
       alert("Greška: " + error.message);
     } else {
       alert("Profil uspješno sačuvan!");
-      window.location.reload(); // Osvježavamo stranicu da nestane forma i pojave se kartice
+      window.location.reload();
     }
     setSaving(false);
+  };
+
+  // --- LOGIKA ZA SWIPE ---
+
+  const handleSwipe = async (direction: "left" | "right" | "up") => {
+    if (swipeDirection || currentIndex >= cards.length) return;
+    setSwipeDirection(direction);
+
+    const trenutnaKartica = cards[currentIndex];
+    
+    // Mapiranje smjera u odluku za bazu
+    let odluka = "preskoceno";
+    if (direction === "right") odluka = "lajk";
+    if (direction === "left") odluka = "odbijeno";
+
+    // Upisujemo u bazu (ako je korisnik ulogovan i imamo userId)
+    if (userId && trenutnaKartica?.korisnikId) {
+      await supabase.from("swipe_odluke").upsert({
+        korisnik_id: userId,
+        oglas_id: trenutnaKartica.korisnikId, // Koristimo ID korisnika kao referencu
+        odluka: odluka
+      }, { onConflict: "korisnik_id,oglas_id" });
+    }
+
+    // Sačekaj da se završi CSS animacija pa prebaci na sljedeću
+    setTimeout(() => {
+      setCurrentIndex((prev) => prev + 1);
+      setSwipeDirection(null);
+      setDragOffsetX(0);
+    }, 400);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (swipeDirection) return;
+    setIsDragging(true);
+    setDragStartX(e.clientX);
+    if (cardRef.current) {
+      cardRef.current.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const offset = e.clientX - dragStartX;
+    setDragOffsetX(offset);
+  };
+
+  const handlePointerUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    if (dragOffsetX > 100) {
+      handleSwipe("right");
+    } else if (dragOffsetX < -100) {
+      handleSwipe("left");
+    } else {
+      setDragOffsetX(0);
+    }
   };
 
   if (loading)
@@ -179,7 +256,6 @@ export default function CimeriPage() {
           <h2>Nađi cimera</h2>
         </div>
 
-        {/* AKO KORISNIK NEMA PROFIL, POKAŽI FORMU */}
         {!myProfile && userId ? (
           <div
             style={{
@@ -209,13 +285,7 @@ export default function CimeriPage() {
               style={{ display: "flex", flexDirection: "column", gap: "15px" }}
             >
               <div>
-                <label
-                  style={{
-                    color: "var(--text-gray)",
-                    display: "block",
-                    marginBottom: "5px",
-                  }}
-                >
+                <label style={{ color: "var(--text-gray)", display: "block", marginBottom: "5px" }}>
                   Budžet (KM/mj)
                 </label>
                 <input
@@ -235,13 +305,7 @@ export default function CimeriPage() {
                 />
               </div>
               <div>
-                <label
-                  style={{
-                    color: "var(--text-gray)",
-                    display: "block",
-                    marginBottom: "5px",
-                  }}
-                >
+                <label style={{ color: "var(--text-gray)", display: "block", marginBottom: "5px" }}>
                   O sebi
                 </label>
                 <textarea
@@ -261,13 +325,7 @@ export default function CimeriPage() {
                 />
               </div>
               <div>
-                <label
-                  style={{
-                    color: "var(--text-gray)",
-                    display: "block",
-                    marginBottom: "5px",
-                  }}
-                >
+                <label style={{ color: "var(--text-gray)", display: "block", marginBottom: "5px" }}>
                   Tagovi (odvoji zarezom)
                 </label>
                 <input
@@ -285,14 +343,7 @@ export default function CimeriPage() {
                   }}
                 />
               </div>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "10px",
-                  color: "white",
-                  alignItems: "center",
-                }}
-              >
+              <div style={{ display: "flex", gap: "10px", color: "white", alignItems: "center" }}>
                 <input
                   type="checkbox"
                   checked={pusac}
@@ -320,67 +371,59 @@ export default function CimeriPage() {
             </form>
           </div>
         ) : (
-          /* AKO IMA PROFIL, POKAŽI TINDER */
           <div className="matchmaking-layout">
-            <p
-              style={{
-                textAlign: "center",
-                color: "var(--text-gray)",
-                marginBottom: "20px",
-              }}
-            >
-              Swipe-uj lijevo da odbiješ, desno da prihvatiš.
+            <p style={{ textAlign: "center", color: "var(--text-gray)", marginBottom: "20px" }}>
+              Povuci karticu lijevo/desno ili koristi dugmiće ispod.
             </p>
 
             <div className="card-stack-container">
-              {cards.length === 0 ? (
-                <div
-                  style={{
-                    textAlign: "center",
-                    padding: "50px 20px",
-                    color: "var(--text-gray)",
-                  }}
-                >
-                  <i
-                    className="fa-solid fa-face-smile-wink"
-                    style={{
-                      fontSize: "50px",
-                      color: "var(--primary-orange)",
-                      marginBottom: "20px",
-                    }}
-                  ></i>
+              {currentIndex >= cards.length ? (
+                <div style={{ textAlign: "center", padding: "50px 20px", color: "var(--text-gray)" }}>
+                  <i className="fa-solid fa-face-smile-wink" style={{ fontSize: "50px", color: "var(--primary-orange)", marginBottom: "20px" }}></i>
                   <h3>Nema više profila!</h3>
                   <p>Trenutno nema studenata koji traže cimera.</p>
                 </div>
               ) : (
                 cards.map((card, index) => {
-                  const isActive = index === 0;
-                  const isNext = index === 1;
+                  const isActive = index === currentIndex;
+                  const isNext = index === currentIndex + 1;
+                  
+                  if (!isActive && !isNext) return null;
+
+                  let swipeClass = "";
+                  if (isActive && swipeDirection === "left") swipeClass = "swipe-left";
+                  if (isActive && swipeDirection === "right") swipeClass = "swipe-right";
+                  if (isActive && swipeDirection === "up") swipeClass = "swipe-up";
+
+                  const dragStyle = isActive && isDragging ? {
+                    transform: `translateX(${dragOffsetX}px) rotate(${dragOffsetX * 0.05}deg)`,
+                    transition: "none"
+                  } : {};
+
                   return (
                     <div
                       key={card.id}
-                      className={`match-card ${isActive ? "active-card" : ""} ${isNext ? "next-card" : ""}`}
-                      style={{
-                        display: !isActive && !isNext ? "none" : "flex",
-                      }}
+                      ref={isActive ? cardRef : null}
+                      className={`match-card ${isActive ? "active-card" : ""} ${isNext ? "next-card" : ""} ${swipeClass}`}
+                      style={{ display: isActive || isNext ? "flex" : "none", ...dragStyle }}
+                      onPointerDown={isActive ? handlePointerDown : undefined}
+                      onPointerMove={isActive ? handlePointerMove : undefined}
+                      onPointerUp={isActive ? handlePointerUp : undefined}
                     >
                       <div className="match-img-container">
-                        <img src={card.slika} alt="Profil" />
+                        <img src={card.slika} alt="Profil" draggable={false} />
                         <div className="match-gradient"></div>
                         <div className="match-info">
                           <h3>{card.ime}</h3>
                           <p>
-                            <i className="fa-solid fa-location-dot"></i>{" "}
-                            {card.grad}
+                            <i className="fa-solid fa-location-dot"></i> {card.grad}
                           </p>
                         </div>
                       </div>
                       <div className="match-details">
                         <div className="tags">
                           {card.tagovi.map((tag: string, i: number) => (
-                            <span className="tag" key={i}>
-                              {tag}
-                            </span>
+                            <span className="tag" key={i}>{tag}</span>
                           ))}
                         </div>
                         <p className="match-bio">"{card.bio}"</p>
@@ -393,6 +436,20 @@ export default function CimeriPage() {
                 })
               )}
             </div>
+
+            {currentIndex < cards.length && (
+              <div className="action-buttons">
+                <button className="btn-action btn-reject" onClick={() => handleSwipe("left")} title="Odbij">
+                  <i className="fa-solid fa-xmark"></i>
+                </button>
+                <button className="btn-action btn-super" onClick={() => handleSwipe("up")} title="Sačuvaj za kasnije">
+                  <i className="fa-solid fa-star"></i>
+                </button>
+                <button className="btn-action btn-accept" onClick={() => handleSwipe("right")} title="Prihvati">
+                  <i className="fa-solid fa-heart"></i>
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
