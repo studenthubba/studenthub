@@ -11,8 +11,6 @@ export default function ProfilPage() {
   const [user, setUser] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profil, setProfil] = useState<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   
   const supabase = createClient();
   const router = useRouter();
@@ -26,8 +24,7 @@ export default function ProfilPage() {
         return;
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('korisnici')
         .select('*')
         .eq('auth_user_id', session.user.id)
@@ -48,7 +45,38 @@ export default function ProfilPage() {
     router.push("/");
   };
 
-  if (loading) return <div style={{ color: 'white', textAlign: 'center', marginTop: '100px' }}>Učitavanje profila...</div>;
+  // --- SKELETON LOADER ---
+  if (loading) {
+    return (
+      <>
+        <div className="background-shapes">
+          <div className="shape shape-1"></div>
+          <div className="shape shape-2"></div>
+          <div className="shape shape-3"></div>
+        </div>
+        <main className="main-content" style={{ paddingTop: "100px", paddingBottom: "100px" }}>
+          <div className="skeleton-container">
+            {/* Skeleton za avatar */}
+            <div className="skeleton-avatar skeleton-pulse"></div>
+            {/* Skeleton za ime i email */}
+            <div className="skeleton-text skeleton-pulse" style={{ width: "200px", height: "24px", marginBottom: "10px" }}></div>
+            <div className="skeleton-text skeleton-pulse" style={{ width: "150px", height: "16px" }}></div>
+
+            {/* Skeleton za kartice */}
+            <div className="skeleton-card skeleton-pulse" style={{ marginTop: "40px" }}>
+              <div className="skeleton-text skeleton-pulse" style={{ width: "30%", height: "16px", marginBottom: "20px" }}></div>
+              <div className="skeleton-input skeleton-pulse"></div>
+              <div className="skeleton-input skeleton-pulse"></div>
+            </div>
+            <div className="skeleton-card skeleton-pulse">
+              <div className="skeleton-text skeleton-pulse" style={{ width: "30%", height: "16px", marginBottom: "20px" }}></div>
+              <div className="skeleton-button skeleton-pulse"></div>
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   const inicijal = profil?.ime ? profil.ime.charAt(0).toUpperCase() : "K";
 

@@ -4,12 +4,16 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase";
+import Toast from "../Toast"; // NOVO
 
 export default function DodajOglasPage() {
   const [loading, setLoading] = useState(false);
   const [tipOglasa, setTipOglasa] = useState("");
   const [slika, setSlika] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Stanje za Toast
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
   
   const supabase = createClient();
   const router = useRouter();
@@ -28,7 +32,7 @@ export default function DodajOglasPage() {
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      alert("Morate biti prijavljeni da biste dodali oglas.");
+      setToast({ message: "Morate biti prijavljeni da biste dodali oglas.", type: "error" });
       setLoading(false);
       return;
     }
@@ -40,7 +44,7 @@ export default function DodajOglasPage() {
       .single();
 
     if (!korisnik) {
-      alert("Greška: Korisnik nije pronađen u bazi.");
+      setToast({ message: "Greška: Korisnik nije pronađen u bazi.", type: "error" });
       setLoading(false);
       return;
     }
@@ -62,7 +66,7 @@ export default function DodajOglasPage() {
     }).select().single();
 
     if (error) {
-      alert("Greška pri objavi: " + error.message);
+      setToast({ message: "Greška pri objavi: " + error.message, type: "error" });
       setLoading(false);
       return;
     }
@@ -77,7 +81,7 @@ export default function DodajOglasPage() {
         .upload(fileName, slika);
 
       if (uploadError) {
-        alert("Oglas je objavljen, ali slika nije uspjela: " + uploadError.message);
+        setToast({ message: "Oglas je objavljen, ali slika nije uspjela: " + uploadError.message, type: "error" });
       } else {
         // 3. Uzimamo javni URL slike i upisujemo u tabelu oglasi_slike
         const { data: { publicUrl } } = supabase.storage
@@ -92,8 +96,10 @@ export default function DodajOglasPage() {
       }
     }
 
-    alert("Oglas uspješno objavljen!");
-    router.push("/svioglasi");
+    setToast({ message: "Oglas uspješno objavljen!", type: "success" });
+    setTimeout(() => {
+      router.push("/svioglasi");
+    }, 1500); // Sačekamo da korisnik vidi toast pre preusmeravanja
   };
 
   return (
@@ -103,6 +109,9 @@ export default function DodajOglasPage() {
         <div className="shape shape-2"></div>
         <div className="shape shape-3"></div>
       </div>
+
+      {/* TOAST NOTIFIKACIJA */}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       <nav className="top-nav" style={{ display: "block" }}>
         <div className="nav-container">

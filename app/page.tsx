@@ -7,10 +7,12 @@ import { createClient } from "../lib/supabase";
 export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [authTab, setAuthTab] = useState<"login" | "register">("login");
+  // NOVO: Stanje za tip naloga
+  const [tipNaloga, setTipNaloga] = useState<"student" | "firma">("student");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [user, setUser] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [najnovijiOglasi, setNajnovijiOglasi] = useState<any[]>([]); // DODANO
+  const [najnovijiOglasi, setNajnovijiOglasi] = useState<any[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
@@ -19,7 +21,6 @@ export default function Home() {
       setUser(session?.user || null);
     };
     
-    // DODANO: Povlačenje oglasa iz baze
     const fetchOglasi = async () => {
       const { data } = await supabase
         .from("oglas")
@@ -56,16 +57,37 @@ export default function Home() {
     const email = (form.elements.namedItem("reg-email") as HTMLInputElement).value;
     const password = (form.elements.namedItem("reg-password") as HTMLInputElement).value;
     const ime = (form.elements.namedItem("reg-ime") as HTMLInputElement).value;
-    const prezime = (form.elements.namedItem("reg-prezime") as HTMLInputElement).value;
-    const fakultet = (form.elements.namedItem("reg-fakultet") as HTMLSelectElement).value;
-    const godina = (form.elements.namedItem("reg-godina") as HTMLSelectElement).value;
     const grad = (form.elements.namedItem("reg-grad") as HTMLInputElement).value;
+
+    let prezime = null;
+    let fakultet = null;
+    let godina = null;
+    let pib = null;
+    let adresa = null;
+
+    if (tipNaloga === "student") {
+      prezime = (form.elements.namedItem("reg-prezime") as HTMLInputElement).value;
+      fakultet = (form.elements.namedItem("reg-fakultet") as HTMLSelectElement).value;
+      godina = (form.elements.namedItem("reg-godina") as HTMLSelectElement).value;
+    } else {
+      pib = (form.elements.namedItem("reg-pib") as HTMLInputElement).value;
+      adresa = (form.elements.namedItem("reg-adresa") as HTMLInputElement).value;
+    }
 
     const { error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { ime, prezime, fakultet_id: fakultet, godina_studija: godina, grad }
+        data: {
+          ime: ime,
+          prezime: prezime,
+          fakultet_id: fakultet,
+          godina_studija: godina,
+          grad: grad,
+          uloga: tipNaloga,
+          pib: pib,
+          adresa: adresa,
+        }
       }
     });
 
@@ -85,7 +107,7 @@ export default function Home() {
         <div className="shape shape-3"></div>
       </div>
 
-      <nav className="top-nav" style={{ display: "block" }}>
+      <nav className="top-nav">
         <div className="nav-container">
           <div className="logo-area">
             <div className="logo-icon"><i className="fa-solid fa-graduation-cap"></i></div>
@@ -143,7 +165,6 @@ export default function Home() {
             <Link href="/svioglasi" className="see-all">Vidi sve <i className="fa-solid fa-arrow-right"></i></Link>
           </div>
 
-          {/* OVDJE JE KORAK 4 - POVLAČENJE IZ BAZE */}
           <div className="listings-grid">
             {najnovijiOglasi.map((oglas) => (
               <Link key={oglas.id} href={`/oglas/${oglas.id}`} className="listing-card">
@@ -176,7 +197,6 @@ export default function Home() {
               <p style={{ color: "var(--text-gray)" }}>Trenutno nema aktivnih oglasa.</p>
             )}
           </div>
-
         </section>
       </main>
 
@@ -206,14 +226,68 @@ export default function Home() {
           </form>
 
           <form onSubmit={handleRegister} className={`auth-form ${authTab === "register" ? "active-form" : ""}`} style={{ display: authTab === "register" ? "block" : "none" }}>
+            
+            {/* DODATO: IZBOR TIPA NALOGA */}
             <div className="input-group">
-              <label>Ime</label>
-              <input type="text" name="reg-ime" placeholder="Amina" required />
+              <label>Tip naloga</label>
+              <select 
+                value={tipNaloga} 
+                onChange={(e) => setTipNaloga(e.target.value as "student" | "firma")}
+                style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", padding: "12px 15px", borderRadius: "10px", color: "white", outline: "none", cursor: "pointer" }}
+              >
+                <option value="student">Student</option>
+                <option value="firma">Firma / Poslodavac</option>
+              </select>
             </div>
+
             <div className="input-group">
-              <label>Prezime</label>
-              <input type="text" name="reg-prezime" placeholder="Tadić" required />
+              <label>{tipNaloga === "firma" ? "Naziv firme" : "Ime"}</label>
+              <input type="text" name="reg-ime" placeholder={tipNaloga === "firma" ? "npr. IT Firma d.o.o." : "Amina"} required />
             </div>
+
+            {tipNaloga === "student" && (
+              <>
+                <div className="input-group">
+                  <label>Prezime</label>
+                  <input type="text" name="reg-prezime" placeholder="Tadić" required />
+                </div>
+                <div className="input-group">
+                  <label>Fakultet</label>
+                  <select name="reg-fakultet" required defaultValue="">
+                    <option value="" disabled>Izaberi fakultet</option>
+                    <option value="1">Elektrotehnički fakultet (ETF)</option>
+                    <option value="2">Ekonomski fakultet</option>
+                    <option value="3">Pravni fakultet</option>
+                    <option value="4">Medicinski fakultet</option>
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label>Godina studija</label>
+                  <select name="reg-godina" required defaultValue="">
+                    <option value="" disabled>Izaberi godinu</option>
+                    <option value="1">1. godina</option>
+                    <option value="2">2. godina</option>
+                    <option value="3">3. godina</option>
+                    <option value="4">4. godina</option>
+                    <option value="5">Master</option>
+                  </select>
+                </div>
+              </>
+            )}
+
+            {tipNaloga === "firma" && (
+              <>
+                <div className="input-group">
+                  <label>PIB / ID broj</label>
+                  <input type="text" name="reg-pib" placeholder="npr. 123456789" required />
+                </div>
+                <div className="input-group">
+                  <label>Adresa firme</label>
+                  <input type="text" name="reg-adresa" placeholder="npr. Zmaja od Bosne 5, Sarajevo" required />
+                </div>
+              </>
+            )}
+
             <div className="input-group">
               <label>Email adresa</label>
               <input type="email" name="reg-email" placeholder="tvoj.email@student.ba" required />
@@ -221,27 +295,6 @@ export default function Home() {
             <div className="input-group">
               <label>Lozinka (min. 6 karaktera)</label>
               <input type="password" name="reg-password" placeholder="••••••••" required minLength={6} />
-            </div>
-            <div className="input-group">
-              <label>Fakultet</label>
-              <select name="reg-fakultet" required defaultValue="">
-                <option value="" disabled>Izaberi fakultet</option>
-                <option value="1">Elektrotehnički fakultet (ETF)</option>
-                <option value="2">Ekonomski fakultet</option>
-                <option value="3">Pravni fakultet</option>
-                <option value="4">Medicinski fakultet</option>
-              </select>
-            </div>
-            <div className="input-group">
-              <label>Godina studija</label>
-              <select name="reg-godina" required defaultValue="">
-                <option value="" disabled>Izaberi godinu</option>
-                <option value="1">1. godina</option>
-                <option value="2">2. godina</option>
-                <option value="3">3. godina</option>
-                <option value="4">4. godina</option>
-                <option value="5">Master</option>
-              </select>
             </div>
             <div className="input-group">
               <label>Grad</label>
